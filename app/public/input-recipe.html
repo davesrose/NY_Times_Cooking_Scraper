@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reservation Page</title>
+
+  <!-- Latest compiled and minified CSS & JS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <script src="https://code.jquery.com/jquery.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+    <div class="container">
+        <a href="/"><button type="button" class="btn btn-lg btn-default"><span class="glyphicon glyphicon-home"></span></button></a>
+        <h2 class="text-center">Input Recipe</h2>
+        <form role="form">
+            <div class="form-group">
+                <label for="enter-html">Input HTML</label>
+                <input type="text" class="form-control" id="input-recipe">
+            </div>
+            <div class="form-group">
+                <label for="select-category">Select your category</label>
+                <select name="categories" id="categories">
+                    <option value="no-recipe" id="no-recipe">No Recipe Series</option>
+                    <option value="beef" id="beef">Beef</option>
+                    <option value="poultry" id="poultry">Poultry</option>
+                    <option value="pork" id="pork">Pork</option>
+                    <option value="lamb" id="lamb">Lamb</option>
+                    <option value="seafood" id="seafood">Seafood</option>
+                    <option value="vegetarian" id="vegetarian">Vegetarian</option>
+                    <option value="sides" id="sides">Sides</option>
+                    <option value="salads" id="salads">Salads</option>
+                    <option value="saucesAndDressings" id="sauces">Sauces and Dressings</option>
+                    <option value="soups" id="soups">Soups</option>
+                    <option value="pasta" id="pasta">Pasta</option>
+                    <option value="bread" id="bread">Bread</option>
+                    <option value="breakfast" id="breakfast">Breakfast</option>
+                    <option value="desserts" id="desserts">Desserts</option>
+                    <option value="appetizer" id="appetizer">Appetizer</option>
+                    <option value="drinks" id="drinks">Drinks</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary submit">Submit</button>          
+        </form>
+    </div>
+</body>
+</html>
+<script type="text/javascript">
+    $(".submit").on("click", function(event) {
+        event.preventDefault();
+        let input = $('#input-recipe').val().trim();
+        let category = $('#categories').val();
+        let page = $.parseHTML(input);
+        console.log(page)
+        let recipe = {}
+        recipe.category = category;
+      let title = $(page).find('.recipe-title').html().trim();
+      console.log(title);
+      recipe.title = title;
+        let author = $(page).find('.byline-name').text();
+      recipe.author = author;
+      let notes = [];
+      $(page).find('.recipe-note-description').each(function(i, element) {
+          let note = $(element).text().replace(/\s+/g, ' ').replace(/\n/g, '');
+          if (note !== '') {
+            notes.push(note);
+          } else {
+            notes.push(null);
+          }
+      });
+      if (notes[0]) recipe.notes = notes;
+      let summary = [];
+      $(page).find('div .topnote p').each(function(i, element) {
+          let singleSum = $(element).text().replace(/\s+/g, ' ').replace(/\n/g, '');
+          summary.push(singleSum);
+      })
+      if (summary.length > 0) { 
+          recipe.summary = summary;
+      } else {
+          recipe.summary = '';
+      }
+      let recipeIngredients = $(page).find('.recipe-ingredients-wrap')
+      let units = [];
+      let names = [];
+      let ingredients = {};
+      let ingredientArr = [];
+      let ingredientSections = [];
+      function setIngredientArray(selector) {
+        units = [];
+        names = [];
+        ingredientArr = [];
+        selector.find('.quantity').each(function(i, element) {
+            let unit = $(element).text().replace(/\s+/g, ' ').replace(/\n/g, '');
+            if (unit.indexOf('~') !== -1) unit.prepend('\n');
+            if (unit === ' ') {
+                unit = '';
+            } else {
+                unit = unit.substring(0, unit.length -1);
+            }
+            units.push(unit.substring(1));            
+        });
+        selector.find('.ingredient-name').each(function(i, element) {
+            let name = $(element).text().replace(/\s+/g, ' ');
+            name = name.substring(0, name.length -1);
+                //names.push(name.substring(1));
+            names.push(name);            
+        });
+        for (let i = 0; i < names.length; i++) {
+            //units[i] = units[i].substring(1);
+            let ingredient = units[i] + names[i];
+            ingredientArr.push(ingredient);
+        }
+        return ingredientArr;
+      }
+      function setIngredientGroupArray() {
+            ingredientSections = {};
+            ingredients = [];
+            ingredientArr = [];
+            recipeIngredients.children('.part-name').each(function(i, element) {
+                var partName = $(element).text();
+                var selector = $(element).next('.recipe-ingredients');
+                var eachIngredientGoup = setIngredientArray(selector);
+                ingredients.push({[partName]: eachIngredientGoup});
+            });
+            recipe.ingredients = ingredients;
+            console.log(recipe.ingredients)
+      }
+      if (recipeIngredients.children('.part-name').length > 0) {
+          setIngredientGroupArray();
+      } else {  
+          var selector = $(recipeIngredients.find('.recipe-ingredients'));
+          ingredients = [{
+              'All Ingredients': setIngredientArray(selector)
+          }]
+          recipe.ingredients = ingredients;
+      }
+       let steps = [];
+      $(page).find('.recipe-steps li').each(function(i, element) {
+          let step = $(element).text();
+          steps.push(step);
+      });
+      recipe.steps = steps;
+      console.log(recipe);
+        var newRecipe = { input: recipe };
+        $.post("/api/recipes", newRecipe,
+            function(data) {
+
+                // If a table is available... tell user they are booked.
+                if (data) {
+                    alert("Recipe submitted");
+                }
+
+                // If a table is available... tell user they on the waiting list.
+                else {
+                    alert("Sorry, error");
+                }
+
+                // Clear the form when submitting
+                $("#input-recipe").val("");
+            }
+        );
+    });    
+</script>
