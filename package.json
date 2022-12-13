@@ -11,7 +11,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "docx": "^5.0.2",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "fast-csv": "^4.0.2",
     "mysql": "^2.18.1",
     "nodemon": "^2.0.2",
